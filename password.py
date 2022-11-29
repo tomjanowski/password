@@ -75,8 +75,8 @@ for i in range(0,max_iter):
   while True:
     bigint=int.from_bytes(bytearr,byteorder='big')
     if max_iter==1:
-      print("Integer: {0:50X}".format(bigint),end="\n")
-      print("MAX:     {0:50X}".format(biggest_accepted),end="\n")
+      print("Integer: {0:50X}".format(bigint),end="\n",file=sys.stderr)
+      print("MAX:     {0:50X}".format(biggest_accepted),end="\n",file=sys.stderr)
     if bigint<biggest_accepted: 
       break
 #   print(": rejected")
