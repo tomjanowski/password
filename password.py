@@ -38,12 +38,20 @@ if not spec:
 if digit:
   select=r'0123456789'
 length=len(select)
-ssize=math.ceil(math.log2(length)*passlen/8)
-removebits=ssize*8-math.ceil(math.log2(length)*passlen)
+ssize=math.ceil(math.log2(length)*passlen/8)-1
 biggest_value=length**passlen
+ratio=0
+while ratio<128:
+  ssize=ssize+1
+  removebits=ssize*8-math.ceil(math.log2(length)*passlen)
+  biggest_random=256**ssize
+  ratio=biggest_random//biggest_value
+  if ratio<1: raise Exception("Bad ratio")
+biggest_accepted=ratio*biggest_value
 print("Random bytes read: ",  ssize,file=sys.stderr)
 print("trailing bits to zero",removebits,file=sys.stderr)
 print("Password length:   ",  passlen,file=sys.stderr)
+print("Ratio:             ",  ratio,file=sys.stderr)
 dist={}
 for i in select:
   dist[i]=0
@@ -56,25 +64,20 @@ for i in range(0,max_iter):
 # cutoff that results in unbalanced probabilities on the tail side of
 # the last digit. With this, the distribution is perfect (tested).
 # tested again in 2022-22-21 and the ratio of the largest and the 
-# smallest number of 'hits' is approx. 1+30/sqrt(max_iter)
-# Added efficiency improvement, first zero extra leading bits.
+# smallest number of 'hits' is approx. 1+34/sqrt(max_iter)
+# Added efficiency improvement by more efficiently utilizing existing bits
 # Note that we just simply convert the big integer number into a
 # representation with a base that is the size of the array of characters
-# and is why we reject numbers that a larger than this "encoding",
+# and thus is why we reject numbers that a larger than this "encoding",
 # i.e. base to the power of number of chars in the password.
+# The impovement: Add extra byte and utilize all numbers to the largest
+# multiple of the biggest_value, discard the tail
   while True:
-    if max_iter==1:
-      print("Random bytes from file:  ",to_hex(bytearr),file=sys.stderr)
-    single_byte=bytearr[0]
-    for k in range(7,7-removebits,-1):
-      single_byte=single_byte&((~(1<<k))&0b11111111)
-    bytearr=bytes([single_byte])+bytearr[1:]
-    if max_iter==1:
-      print("Random bytes after mask: ",to_hex(bytearr),file=sys.stderr)
     bigint=int.from_bytes(bytearr,byteorder='big')
-#   print("{0:23}{1:23}".format(bigint,biggest_value),end="")
-    if bigint<biggest_value: 
-#     print("")
+    if max_iter==1:
+      print("Integer: {0:50X}".format(bigint),end="\n")
+      print("MAX:     {0:50X}".format(biggest_accepted),end="\n")
+    if bigint<biggest_accepted: 
       break
 #   print(": rejected")
     repeats=repeats+1
